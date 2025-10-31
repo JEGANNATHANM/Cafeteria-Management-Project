@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cart</title>
+    <style>
+        body {
+            
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #regDisplay {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        button {
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin: 10px;
+            transition: color 0.3s, background-color 0.3s;
+        }
+        button:hover {
+            color: blue;
+            background-color: #45a049;
+        }
+        #qrCode {
+            margin-top: 20px;
+            display: none;
+        }
+        .qr-container {
+            text-align: center;
+        }
+        .qr-container img {
+            margin-top: 10px;
+            width: 200px;
+            height: 200px;
+        }
+        .cancel-btn {
+            background-color: #f44336;
+        }
+        .cancel-btn:hover {
+            background-color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <center>
+        <h1>Your Cart</h1>
+        <p id="regDisplay"></p> <!-- Display the registration number -->
+        <div id="cartContainer">
+            <!-- Cart items table will be displayed here -->
+        </div>
+        <h3>Total: ₹<span id="totalAmount">0</span></h3>
+        <button onclick="placeOrder()">Place Order</button>
+        <button onclick="generateQRCode()">Make Payment</button>
+        <button onclick="goBackToMenu()">Back to Menu</button>
+        <div id="qrCode" class="qr-container">
+            <p>Scan this QR Code to make the payment:</p>
+            <img id="qrImage" src="jega.jpg" alt="QR Code">
+        </div>
+    </center>
+
+    <script>
+        // Retrieve and display the registration number
+        const regNumber = localStorage.getItem("regNumber");
+        if (regNumber) {
+            document.getElementById("regDisplay").textContent = Reg Number: ${regNumber};
+        } else {
+            alert("Registration number is missing! Redirecting to the home page.");
+            window.location.href = "index.html";
+        }
+
+        // Retrieve cart data from localStorage
+        let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+        // Group items by name
+        function groupCartItems(cart) {
+            const groupedItems = {};
+            cart.forEach(item => {
+                if (groupedItems[item.name]) {
+                    groupedItems[item.name].quantity += 1;
+                    groupedItems[item.name].totalPrice += item.price;
+                } else {
+                    groupedItems[item.name] = {
+                        ...item,
+                        quantity: 1,
+                        totalPrice: item.price
+                    };
+                }
+            });
+            return Object.values(groupedItems);
+        }
+
+        function loadCart() {
+            const cartContainer = document.getElementById("cartContainer");
+            const totalAmountElem = document.getElementById("totalAmount");
+            let totalAmount = 0;
+
+            if (cart.length === 0) {
+                cartContainer.innerHTML = "<p>Your cart is empty!</p>";
+                totalAmountElem.textContent = 0;
+                return;
+            }
+
+            const groupedCart = groupCartItems(cart);
+
+            // Create table structure
+            const table = document.createElement("table");
+            const thead = document.createElement("thead");
+            thead.innerHTML = `
+                <tr>
+                    <th>Item Name</th>
+                    <th>Quantity</th>
+                    <th>Total Price (₹)</th>
+                    <th>Action</th>
+                </tr>
+            `;
+            table.appendChild(thead);
+
+            const tbody = document.createElement("tbody");
+
+            
+            groupedCart.forEach((item, index) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${item.name}</td>
+                    <td>${item.quantity}</td>
+                    <td>${item.totalPrice}</td>
+                    <td><button class="cancel-btn" onclick="reduceItem('${item.name}')">Cancel</button></td>
+                `;
+                totalAmount += item.totalPrice;
+                tbody.appendChild(row);
+            });
+
+            table.appendChild(tbody);
+            cartContainer.innerHTML = ""; 
+            cartContainer.appendChild(table);
+
+            
+            totalAmountElem.textContent = totalAmount;
+        }
+
+        
+        function reduceItem(itemName) {
+            const itemIndex = cart.findIndex(item => item.name === itemName);
+            if (itemIndex !== -1) {
+                const item = cart[itemIndex];
+                cart.splice(itemIndex, 1); 
+            }
+
+            
+            localStorage.setItem("cart", JSON.stringify(cart));
+            loadCart();
+        }
+
+        
+      function placeOrder() {
+    if (cart.length === 0) {
+        alert("Your cart is empty!");
+        return;
+    }
+
+    const regNumber = localStorage.getItem("regNumber");
+    if (!regNumber) {
+        alert("Registration number is missing! Redirecting to the home page.");
+        window.location.href = "index.html";
+        return;
+    }
+
+    const totalAmount = cart.reduce((total, item) => total + item.price, 0);
+    const orderId = Date.now(); // Unique order ID based on timestamp
+
+    const order = {
+        id: orderId,
+        regNumber: regNumber,
+        items: groupCartItems(cart),
+        totalAmount: totalAmount,
+        createdAt: new Date().toISOString()
+    };
+
+    // Save order to adminOrders in localStorage
+    const adminOrders = JSON.parse(localStorage.getItem("adminOrders")) || [];
+    adminOrders.push(order);
+    localStorage.setItem("adminOrders", JSON.stringify(adminOrders));
+
+    // Clear the cart and redirect
+    localStorage.removeItem("cart");
+    alert("Your order was successfully placed!");
+    window.location.href = "menu.html";
+}
+
+
+        // Generate QR code for payment
+        function generateQRCode() {
+            const totalAmount = document.getElementById("totalAmount").textContent;
+            if (parseInt(totalAmount) === 0) {
+                alert("Your cart is empty!");
+                return;
+            }
+
+            const qrCodeContainer = document.getElementById("qrCode");
+            const qrImage = document.getElementById("qrImage");
+
+            // Display the QR code and include total amount in an alert for clarity
+            qrImage.src = "jega.jpg"; // Set to your QR code image
+            qrCodeContainer.style.display = "block";
+
+            alert(The QR code contains the payment amount of ₹${totalAmount}.);
+        }
+
+        // Navigate back to the menu
+        function goBackToMenu() {
+            window.location.href = "menu.html";
+        }
+
+        loadCart();
+    </script>
+</body>
+</html>
