@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cafeteria Menu</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f9f9f9;
+        }
+        #regDisplay {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+            font-weight: bold;
+        }
+        #categoryFilter {
+            margin: 20px 0;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .menu-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+        }
+        .menu-item {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin: 10px;
+            padding: 15px;
+            width: 220px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .menu-item img {
+            width: 100%;
+            border-radius: 8px;
+        }
+        .menu-item button {
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        .menu-item button:hover {
+            background-color: #45a049;
+        }
+        .menu-item .quantity {
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .menu-item .quantity input {
+            width: 50px;
+            text-align: center;
+            margin-left: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        #viewCartBtn {
+            display: block;
+            margin: 20px auto;
+            padding: 15px;
+            font-size: 16px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            background-color: #2196F3;
+        }
+        #viewCartBtn:hover {
+            background-color: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <center><h1>Welcome to the Menu</h1></center>
+    <p id="regDisplay"></p>
+    <select id="categoryFilter" onchange="filterByCategory()">
+        <option value="all">All</option>
+        <option value="Snacks">Snacks</option>
+        <option value="Main Course">Main Course</option>
+        <option value="Desserts">Desserts</option>
+    </select>
+    <div class="menu-container" id="menuItems">
+        <!-- Dynamic menu items will load here -->
+    </div>
+    <button id="viewCartBtn" onclick="viewCart()">View Cart</button>
+
+    <script>
+        // Retrieve and display the registration number
+        const regNumber = localStorage.getItem("regNumber");
+        if (regNumber) {
+            document.getElementById("regDisplay").textContent = `Reg Number: ${regNumber}`;
+        } else {
+            alert("Registration number is missing! Redirecting to the home page.");
+            window.location.href = "index.html";
+        }
+
+        const menu = [
+            { id: 1, name: "Burger", category: "Snacks", price: 89, image: "https://www.chicken.ca/wp-content/uploads/2020/09/Moist-Chicken-Burgers.jpg" },
+            { id: 2, name: "Veg Puff", category: "Snacks", price: 12, image: "https://i.pinimg.com/originals/df/31/74/df3174666a44cd060e1eb6d59938d76c.jpg" },
+            { id: 3, name: "Chicken Puff", category: "Snacks", price: 20, image: "http://1.bp.blogspot.com/_Bsj07jy57o0/TIZVZK5ExiI/AAAAAAAAArM/Xj_zmWs8-jE/s1600/chicken+puffs.JPG" },
+            { id: 4, name: "Pizza", category: "Main Course", price: 90, image: "https://s1.1zoom.me/b6152/819/Pizza_Tomatoes_547600_1920x1080.jpg" },
+            { id: 5, name: "Pasta", category: "Main Course", price: 90, image: "https://www.sandyathome.com/wp-content/uploads/2016/07/IMG_8395.jpg" },
+            { id: 6, name: "Sandwich", category: "Snacks", price: 99, image: "http://pluspng.com/img-png/sandwich-png-hd-sandwich-png-image-sandwich-hd-png-2594.png" },
+            { id: 7, name: "Ice Cream", category: "Desserts", price: 50, image: "https://p1.pxfuel.com/preview/828/77/295/ice-ice-cream-ice-cream-sundae-dessert-strawberries-berries.jpg" },
+            { id: 8, name: "Cake", category: "Desserts", price: 250, image: "https://natashaskitchen.com/wp-content/uploads/2015/06/Black-Forest-Cake-8.jpg" }
+        ];
+
+        const cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+        function loadMenu(filteredMenu = menu) {
+            const menuContainer = document.getElementById("menuItems");
+            menuContainer.innerHTML = ""; // Clear the menu container
+            filteredMenu.forEach(item => {
+                const menuItem = document.createElement("div");
+                menuItem.classList.add("menu-item");
+                menuItem.innerHTML = `
+                    <img src="${item.image}" alt="${item.name}">
+                    <h3>${item.name}</h3>
+                    <p>Category: ${item.category}</p>
+                    <p>Price: ₹${item.price}</p>
+                    <div class="quantity">
+                        <label for="quantity-${item.id}">Quantity:</label>
+                        <input type="number" id="quantity-${item.id}" value="1" min="1">
+                    </div>
+                    <button onclick="addToCart(${item.id})">Add to Cart</button>
+                `;
+                menuContainer.appendChild(menuItem);
+            });
+        }
+
+        function filterByCategory() {
+            const selectedCategory = document.getElementById("categoryFilter").value;
+            if (selectedCategory === "all") {
+                loadMenu(menu);
+            } else {
+                const filteredMenu = menu.filter(item => item.category === selectedCategory);
+                loadMenu(filteredMenu);
+            }
+        }
+
+        function addToCart(id) {
+            const quantity = parseInt(document.getElementById(`quantity-${id}`).value) || 1;
+            const selectedItem = menu.find(item => item.id === id);
+            for (let i = 0; i < quantity; i++) {
+                cart.push(selectedItem);
+            }
+            localStorage.setItem("cart", JSON.stringify(cart));
+            alert(`${quantity} x ${selectedItem.name} added to cart!`);
+        }
+
+        function viewCart() {
+            window.location.href = "cart.html";
+        }
+
+        loadMenu(); // Initial menu load
+    </script>
+</body>
+</html>
